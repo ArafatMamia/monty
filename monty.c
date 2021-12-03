@@ -1,75 +1,45 @@
 #include "monty.h"
 
+/* global struct to hold flag for queue and stack length */
+var_t var;
+
 /**
- * main - main function for monty
- * @argc: argument count
+ * main - Monty bytecode interpreter
+ * @argc: number of arguments passed
  * @argv: array of argument strings
  *
- * Return: exit code
+ * Return: EXIT_SUCCESS on success or EXIT_FAILURE on failure
  */
-int main(int argc, char **argv)
+int main(int argc, char *argv[])
 {
-	FILE *file_in;
+	stack_t *stack = NULL;
 	unsigned int line_number = 0;
-	char *line = NULL;
-	stack_t *top = NULL;
-	instruction_t *instruction = NULL;
+	FILE *file_in = NULL;
+	char *line = NULL, *op = NULL;
 	size_t len = 0;
 
-	/* check for proper number of arguments */
 	if (argc != 2)
 	{
-		fprintf(stdout, "USAGE: monty file\n");
+		dprintf(STDOUT_FILENO, "USAGE: monty file\n");
 		exit(EXIT_FAILURE);
 	}
-
-	/* open file */
 	file_in = fopen(argv[1], "r");
 	if (file_in == NULL)
 	{
-		fprintf(stdout, "Error: Can't open file %s\n", argv[1]);
+		dprintf(STDOUT_FILENO, "Error: Can't open file %s\n", argv[1]);
 		exit(EXIT_FAILURE);
 	}
-
-	/* parse file */
+	on_exit(free_lineptr, &line);
+	on_exit(free_stack, &stack);
+	on_exit(m_fs_close, file_in);
 	while (getline(&line, &len, file_in) != -1)
 	{
 		line_number++;
-		instruction = parse_line(line);
-
-		if (!(instruction->opcode) || instruction->opcode[0] == '#')
+		op = strtok(line, "\n\t\r ");
+		if (op != NULL && op[0] != '#')
 		{
-			free(instruction);
-			if (line)
-				free(line);
-			line = NULL;
-			continue;
+			get_op(op, &stack, line_number);
 		}
-
-		if (instruction->f)
-			instruction->f(&top, line_number);
-		else
-		{
-			fprintf(stdout, "L%d: unknown instruction %s\n",
-				line_number, instruction->opcode);
-			if (line)
-				free(line);
-			if (top)
-				free_stack(top);
-			free(instruction);
-			fclose(file_in);
-			exit(EXIT_FAILURE);
-		}
-
-		if (line)
-			free(line);
-		line = NULL;
-		free(instruction);
 	}
-
-	if (line)
-		free(line);
-	free_stack(top);
-	fclose(file_in);
-	return (0);
+	exit(EXIT_SUCCESS);
 }
