@@ -7,23 +7,69 @@
  *
  * Return: exit code
  */
-int main(int argc, char *argv[])
+int main(int argc, char **argv)
 {
-FILE *file_in;
+	FILE *file_in;
+	unsigned int line_number = 0;
+	char *line = NULL;
+	stack_t *top = NULL;
+	instruction_t *instruction = NULL;
+	size_t len = 0;
 
-if (argc != 2)
-{
-	fprintf(stderr, "Usage: %s <file>\n", argv[0]);
-	exit(EXIT_FAILURE);
-}
-     /* open file */
-file_in = fopen(argv[1], "r");
-if (file_in == NULL)
-{
-	fprintf(stderr, "Error: Can't open file %s", argv[1]);
-	exit(EXIT_FAILURE);
-}
-get_line(file_in);
-fclose(file_in);
-exit(EXIT_SUCCESS);
+	/* check for proper number of arguments */
+	if (argc != 2)
+	{
+		fprintf(stdout, "USAGE: monty file\n");
+		exit(EXIT_FAILURE);
+	}
+
+	/* open file */
+	file_in = fopen(argv[1], "r");
+	if (file_in == NULL)
+	{
+		fprintf(stdout, "Error: Can't open file %s\n", argv[1]);
+		exit(EXIT_FAILURE);
+	}
+
+	/* parse file */
+	while (getline(&line, &len, file_in) != -1)
+	{
+		line_number++;
+		instruction = parse_line(line);
+
+		if (!(instruction->opcode) || instruction->opcode[0] == '#')
+		{
+			free(instruction);
+			if (line)
+				free(line);
+			line = NULL;
+			continue;
+		}
+
+		if (instruction->f)
+			instruction->f(&top, line_number);
+		else
+		{
+			fprintf(stdout, "L%d: unknown instruction %s\n",
+				line_number, instruction->opcode);
+			if (line)
+				free(line);
+			if (top)
+				free_stack(top);
+			free(instruction);
+			fclose(file_in);
+			exit(EXIT_FAILURE);
+		}
+
+		if (line)
+			free(line);
+		line = NULL;
+		free(instruction);
+	}
+
+	if (line)
+		free(line);
+	free_stack(top);
+	fclose(file_in);
+	return (0);
 }
