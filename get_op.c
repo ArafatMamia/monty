@@ -14,6 +14,12 @@ void get_op(char *op, stack_t **stack, unsigned int line_number)
 	instruction_t valid_ops[] = {
 		{"push", m_push},
 		{"pall", m_pall},
+		{"pint", m_pint},
+		{"pop", m_pop},
+		{"swap", m_swap},
+		{"add", m_add},
+		{"nop", m_nop},
+		{NULL, NULL}
 	};
 
 	for (i = 0; valid_ops[i].opcode != NULL; i++)
